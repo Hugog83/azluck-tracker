@@ -16,6 +16,8 @@ Ouvrir l’adresse indiquée par Vite. Sans variables Supabase, les pages affich
 
 ## Supabase
 
+Sur une base existante, suivre [la procédure V2 additive](docs/MW4-CAMO-V2.md) ; les étapes de création et le seed ci-dessous concernent uniquement une nouvelle installation.
+
 1. Créer un projet Supabase.
 2. Dans SQL Editor, exécuter `supabase/migrations/001_tracker.sql`, puis `supabase/seed.sql`.
 3. Dans Authentication > Providers, activer Email. Désactiver l’inscription publique si elle n’est pas souhaitée. L’application n’expose pas de formulaire d’inscription.
@@ -43,14 +45,14 @@ Les cinq collections sont stockées en JSONB dans `public.tracker`. Ce choix per
 ## Utilisation
 
 - Dashboard : statistiques globales saisies, distinctes des calculs de l’historique. Un ratio dont le dénominateur vaut zéro reste non calculable (`—`). Le winrate des parties inclut les égalités dans le total.
-- Camouflages : les 3 armes en Or et les 4 entrées connues du M4. Le pourcentage est la moyenne des progressions des **entrées renseignées**, pas le pourcentage de tous les défis du jeu. L’entrée militaire agrège les 8 camouflages confirmés. Or et Platine se règlent explicitement sur la fiche de l’arme, sans déduction à partir d’un catalogue incomplet.
+- Camouflages V2 : vue des armes existantes, 14 camouflages partagés par arme, maîtrises par mode et Prestige séparé. Les pourcentages des cartes comptent les obtentions explicites ; les conditions inconnues restent « À vérifier ». Les données initiales et les identifiants V1 sont conservés.
 - Historique : recherche par carte, mode ou résultat, filtre de résultat, ordre chronologique et courbe K/D.
 - Arsenal : recherche, filtre de catégorie, fiche, statistiques et classes associées. Les catégories et niveaux inconnus restent à renseigner.
 - Classes : cinq accessoires requis, équipements, atouts et notes publiques.
 - Administration : ajout, modification, suppression (sauf le profil unique), compteurs et validation. Pour modifier une entrée existante, son identifiant reste stable. Les références aux armes sont vérifiées avant sauvegarde.
 - Import : JSON complet ou CSV exporté par l’application (`collection,id,data`, avec champs JSON correctement échappés). Les autres formats CSV ne sont pas interprétés automatiquement. Fichier limité à 2 Mo ; aperçu du nombre d’éléments et confirmation avant remplacement. Toujours exporter avant import. Le format complet est validé, puis enregistré atomiquement.
 
-Les écritures enregistrent un instantané complet. Éviter plusieurs onglets d’administration simultanés : la dernière sauvegarde gagne. Recharger après une modification faite depuis un autre appareil. Les statistiques globales ne sont jamais remplacées par l’agrégation des parties.
+Les écritures V1 (statistiques, parties et classes) enregistrent un instantané complet. Les progressions V2 sont enregistrées individuellement avec contrôle de révision. Éviter plusieurs onglets d’administration simultanés : la dernière sauvegarde gagne. Recharger après une modification faite depuis un autre appareil. Les statistiques globales ne sont jamais remplacées par l’agrégation des parties.
 
 ## Vérifications
 
@@ -75,3 +77,7 @@ Pour vérifier RLS dans un projet de test : lecture anonyme autorisée ; écritu
 `vercel.json` prépare le routage et quelques en-têtes de protection. L’administration utilise une session Supabase, avec l’autorisation imposée en base. Aucune intégration Activision, aucun cookie de session externe ni scraping ne sont utilisés. Il n’y a pas de publication automatique ni de création de compte distant depuis ce projet.
 
 Références de sécurité : [RLS Supabase](https://supabase.com/docs/guides/database/postgres/row-level-security) et [variables publiques Vite](https://vite.dev/guide/env-and-mode).
+
+## V2 du tracker de camouflages
+
+Voir [le guide V2](docs/MW4-CAMO-V2.md) pour les règles, les sources, les limites, les tests et la procédure additive de migration. Sur une installation existante, **ne relancez ni le schéma V1 ni le seed**. La V2 ajoute des tables dédiées et conserve les cinq collections JSONB de `public.tracker`.

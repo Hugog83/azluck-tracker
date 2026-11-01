@@ -1,3 +1,7 @@
+import { CamoTracker } from "./camo/CamoTracker";
+import { useCamoCatalog } from "./camo/useCamoCatalog";
+import { weaponSummary, findProgress, progressPercent } from "./camo/domain";
+import "./camo/camo.css";
 import { Admin, Login } from "./Admin";
 import { PageTitle, Empty } from "./ui";
 import React, { useEffect, useState } from "react";
@@ -33,15 +37,10 @@ import {
   aggregate,
   ratio,
   format,
-  progress,
   type Dataset,
   type Weapon,
 } from "./domain";
-import {
-  supabase,
-  readData,
-  writeData,
-} from "./data";
+import { supabase, readData, writeData } from "./data";
 import "./style.css";
 const nav = [
   ["dashboard", "Vue d’ensemble", LayoutDashboard],
@@ -54,6 +53,7 @@ function App() {
   const [page, setPage] = useState(location.hash.slice(1) || "dashboard"),
     [data, setData] = useState<Dataset>(initial),
     [loading, setLoading] = useState(true),
+    [dataReady, setDataReady] = useState(false),
     [error, setError] = useState(""),
     [notice, setNotice] = useState(""),
     [admin, setAdmin] = useState(false),
@@ -69,7 +69,10 @@ function App() {
     };
     window.addEventListener("hashchange", f);
     readData()
-      .then(setData)
+      .then((loaded) => {
+        setData(loaded);
+        setDataReady(true);
+      })
       .catch((e) => setError(e.message))
       .finally(() => setLoading(false));
     const check = async () => {
@@ -94,6 +97,10 @@ function App() {
     }
   }, [notice]);
   async function save(next: Dataset) {
+    if (!dataReady) {
+      setError("Le profil doit être chargé avant toute modification.");
+      return false;
+    }
     setBusy(true);
     try {
       await writeData(next);
@@ -107,12 +114,25 @@ function App() {
       setBusy(false);
     }
   }
+  const camos = useCamoCatalog(data, dataReady && !loading, admin);
+  const displayGold = (w: Weapon) => weaponSummary(w.id, camos.catalog).gold;
+  const displayPlatinum = (w: Weapon) =>
+    weaponSummary(w.id, camos.catalog).platinum;
   const p = data.profiles[0],
     stats = aggregate(data.matches),
-    gold = data.weapons.filter((w) => w.gold).length,
-    known = data.challenges.length
-      ? data.challenges.reduce((s, c) => s + progress(c), 0) /
-        data.challenges.length
+    gold = data.weapons.filter(displayGold).length,
+    coreDefinitions = camos.catalog.definitions.filter(
+      (d) =>
+        d.mode === "shared" &&
+        ["military", "special", "gold", "platinum", "harmonic"].includes(
+          d.track,
+        ),
+    ),
+    coreCompleted = coreDefinitions.filter(
+      (d) => findProgress(camos.catalog, d.id)?.completed === true,
+    ).length,
+    known = coreDefinitions.length
+      ? (coreCompleted / coreDefinitions.length) * 100
       : 0;
   const filtered = data.weapons.filter(
     (w) =>
@@ -255,10 +275,14 @@ function App() {
             <i
               style={{
                 width:
-                  progress(
-                    data.challenges.find((c) => c.id === "m4-green") ||
-                      initial.challenges[3],
-                  ) + "%",
+                  (camos.catalog.definitions.find((d) => d.id === "m4-green")
+                    ? (progressPercent(
+                        camos.catalog.definitions.find(
+                          (d) => d.id === "m4-green",
+                        )!,
+                        findProgress(camos.catalog, "m4-green"),
+                      ) ?? 0)
+                    : 0) + "%",
               }}
             />
           </div>
@@ -316,6 +340,11 @@ function App() {
           )}
           {loading ? (
             <Empty text="Chargement du profil…" />
+          ) : !dataReady ? (
+            <Empty
+              text="Profil indisponible"
+              sub="Rechargez la page pour réessayer. Toute modification est désactivée tant que les données ne sont pas chargées."
+            />
           ) : (
             <>
               {page === "dashboard" && (
@@ -463,16 +492,15 @@ function App() {
                               {Math.round(known)}
                               <span>%</span>
                             </strong>
-                            <small>RENSEIGNÉ</small>
+                            <small>OBTENUS</small>
                           </div>
                         </div>
                         <div>
                           <strong>
-                            {data.challenges.filter((c) => c.completed).length}/
-                            {data.challenges.length}
+                            {coreCompleted}/{coreDefinitions.length}
                           </strong>
                           <p>défis terminés</p>
-                          <small>Périmètre connu uniquement</small>
+                          <small>Parcours partagé · catalogue V2</small>
                         </div>
                       </div>
                       <div className="mastery-counts">
@@ -482,8 +510,7 @@ function App() {
                         </span>
                         <span>
                           <i className="silver-dot" />
-                          {data.weapons.filter((w) => w.platinum).length}{" "}
-                          Platine
+                          {data.weapons.filter(displayPlatinum).length} Platine
                         </span>
                       </div>
                       <a href="#camos" className="text-link">
@@ -530,9 +557,11 @@ function App() {
                               </small>
                             </div>
                             <span
-                              className={w.gold ? "gold-text" : "purple-text"}
+                              className={
+                                displayGold(w) ? "gold-text" : "purple-text"
+                              }
                             >
-                              {w.gold ? "OR" : "EN COURS"}
+                              {displayGold(w) ? "OR" : "EN COURS"}
                             </span>
                           </button>
                         ))}
@@ -540,19 +569,14 @@ function App() {
                   </div>
                 </>
               )}
-              {["camos", "arsenal"].includes(page) && (
+              {page === "camos" && (
+                <CamoTracker data={data} controller={camos} admin={admin} />
+              )}
+              {page === "arsenal" && (
                 <>
                   <PageTitle
-                    title={
-                      page === "camos"
-                        ? "Tracker de camouflages"
-                        : "Votre arsenal"
-                    }
-                    description={
-                      page === "camos"
-                        ? "Un défi après l’autre. Suivez le chemin vers la maîtrise."
-                        : "Vos armes, leur progression et vos configurations."
-                    }
+                    title="Votre arsenal"
+                    description="Vos armes, leur progression et vos configurations."
                   />
                   <div className="toolbar">
                     <label className="search">
@@ -584,10 +608,11 @@ function App() {
                           <span className="eyebrow">{w.category}</span>
                           <span
                             className={
-                              "badge " + (w.gold ? "gold-text" : "purple-text")
+                              "badge " +
+                              (displayGold(w) ? "gold-text" : "purple-text")
                             }
                           >
-                            {w.gold ? "OR DÉBLOQUÉ" : "EN PROGRESSION"}
+                            {displayGold(w) ? "OR DÉBLOQUÉ" : "EN PROGRESSION"}
                           </span>
                         </div>
                         <div className="weapon-visual">
@@ -598,52 +623,14 @@ function App() {
                         <p className="muted">
                           Niveau {format(w.level)} / {format(w.maxLevel)}
                         </p>
-                        {page === "camos" ? (
-                          <div className="challenge-list">
-                            {data.challenges
-                              .filter((c) => c.weaponId === w.id)
-                              .map((c) => (
-                                <div key={c.id} className="challenge">
-                                  <div>
-                                    <strong>
-                                      {c.completed ? (
-                                        <Check size={14} />
-                                      ) : (
-                                        <Target size={14} />
-                                      )}{" "}
-                                      {c.name}
-                                    </strong>
-                                    <span>
-                                      {c.current}/{c.target}
-                                    </span>
-                                  </div>
-                                  <div className="bar">
-                                    <i style={{ width: progress(c) + "%" }} />
-                                  </div>
-                                  <small>{c.description}</small>
-                                </div>
-                              ))}
-                            {!data.challenges.some(
-                              (c) => c.weaponId === w.id,
-                            ) && (
-                              <p className="muted">
-                                {w.gold
-                                  ? "Or confirmé par le propriétaire. "
-                                  : ""}
-                                Détails des défis à renseigner.
-                              </p>
-                            )}
-                          </div>
-                        ) : (
-                          <div className="arsenal-stats">
-                            <span>
-                              Éliminations <b>{format(w.kills)}</b>
-                            </span>
-                            <span>
-                              K/D <b>{format(ratio(w.kills, w.deaths))}</b>
-                            </span>
-                          </div>
-                        )}
+                        <div className="arsenal-stats">
+                          <span>
+                            Éliminations <b>{format(w.kills)}</b>
+                          </span>
+                          <span>
+                            K/D <b>{format(ratio(w.kills, w.deaths))}</b>
+                          </span>
+                        </div>
                         <button
                           className="text-link"
                           onClick={() => setSelected(w)}
@@ -658,8 +645,8 @@ function App() {
                     <Empty text="Aucune arme ne correspond" />
                   )}
                   <p className="data-note">
-                    Catalogue et conditions saisis manuellement. Aucune
-                    condition non vérifiée n’est ajoutée.
+                    Catalogue saisi manuellement. Retrouvez les camouflages
+                    détaillés dans le tracker V2.
                   </p>
                 </>
               )}
@@ -739,6 +726,7 @@ function App() {
                   />
                   {admin ? (
                     <Admin
+                      camoManaged={camos.ready}
                       data={data}
                       save={save}
                       busy={busy}
@@ -811,9 +799,12 @@ function App() {
               {format(selected.deaths)}
             </p>
             <p className="gold-text">
-              {selected.gold ? "Or débloqué" : "Or en progression"}
+              {displayGold(selected) ? "Or débloqué" : "Or en progression"}
             </p>
-            <p>Platine : {selected.platinum ? "Débloqué" : "Non confirmé"}</p>
+            <p>
+              Platine :{" "}
+              {displayPlatinum(selected) ? "Débloqué" : "Non confirmé"}
+            </p>
             <h3>Défis renseignés</h3>
             {data.challenges
               .filter((c) => c.weaponId === selected.id)

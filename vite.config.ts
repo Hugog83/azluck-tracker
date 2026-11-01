@@ -8,6 +8,7 @@ export default defineConfig({
       output: {
         manualChunks: {
           charts: ["recharts"],
+          supabase: ["@supabase/supabase-js"],
         },
       },
     },
