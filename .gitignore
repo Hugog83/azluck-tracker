@@ -1,0 +1,39 @@
+# Dependencies and build artifacts
+node_modules/
+dist/
+coverage/
+*.tsbuildinfo
+
+# Local environment and credentials (keep the public template)
+.env
+.env.*
+!.env.example
+.envrc
+.npmrc
+.netrc
+*.pem
+*.key
+*.p12
+*.pfx
+*.keystore
+id_rsa
+id_ed25519
+credentials*.json
+service-account*.json
+.aws/
+.ssh/
+
+# Local hosting state, database dumps and logs
+.vercel/
+.supabase/
+supabase/.temp/
+supabase/.branches/
+*.dump
+*.backup
+*.log
+
+# OS and local editor state
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/

@@ -1,0 +1,32 @@
+{
+  "name": "azluck-tracker",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host 127.0.0.1",
+    "build": "tsc -b && vite build",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "format": "prettier --write src vite.config.ts"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.57.0",
+    "lucide-react": "^0.468.0",
+    "react": "^19.1.1",
+    "react-dom": "^19.1.1",
+    "recharts": "^3.2.0",
+    "zod": "^4.1.0"
+  },
+  "devDependencies": {
+    "@tailwindcss/vite": "^4.1.0",
+    "@types/react": "^19.1.0",
+    "@types/react-dom": "^19.1.0",
+    "@vitejs/plugin-react": "^5.0.0",
+    "prettier": "^3.9.10",
+    "tailwindcss": "^4.1.0",
+    "typescript": "~5.9.2",
+    "vite": "^7.1.0",
+    "vitest": "^5.0.5"
+  }
+}
