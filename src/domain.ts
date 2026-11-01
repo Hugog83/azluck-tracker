@@ -1,17 +1,19 @@
 import { z } from "zod";
 const count = z.number().int().nonnegative();
-export const weaponSchema = z.object({
-  id: z.string().min(1),
-  game: z.string().min(1),
-  name: z.string().min(1),
-  category: z.string().min(1),
-  level: count.nullable(),
-  maxLevel: count.nullable(),
-  kills: count.nullable(),
-  deaths: count.nullable(),
-  gold: z.boolean(),
-  platinum: z.boolean(),
-});
+export const weaponSchema = z
+  .object({
+    id: z.string().min(1),
+    game: z.string().min(1),
+    name: z.string().min(1),
+    category: z.string().min(1),
+    level: count.nullable(),
+    maxLevel: count.nullable(),
+    kills: count.nullable(),
+    deaths: count.nullable(),
+    gold: z.boolean(),
+    platinum: z.boolean(),
+  })
+  .passthrough();
 export const challengeSchema = z
   .object({
     id: z.string().min(1),
@@ -23,43 +25,50 @@ export const challengeSchema = z
     target: count.positive(),
     completed: z.boolean(),
   })
+  .passthrough()
   .refine((c) => c.current <= c.target, {
     message: "Le compteur dépasse la cible",
   });
-export const matchSchema = z.object({
-  id: z.string().min(1),
-  game: z.string().min(1),
-  date: z.string().datetime({ offset: true }),
-  map: z.string().min(1),
-  mode: z.string().min(1),
-  result: z.enum(["Victoire", "Défaite", "Égalité"]),
-  kills: count,
-  deaths: count,
-  assists: count,
-  weaponId: z.string(),
-  notes: z.string(),
-});
-export const profileSchema = z.object({
-  id: z.string(),
-  nickname: z.string().min(1),
-  kills: count.nullable(),
-  deaths: count.nullable(),
-  wins: count.nullable(),
-  losses: count.nullable(),
-  hours: z.number().nonnegative().nullable(),
-  accuracy: z.number().min(0).max(100).nullable(),
-});
-export const loadoutSchema = z.object({
-  id: z.string().min(1),
-  game: z.string().min(1),
-  name: z.string().min(1),
-  weaponId: z.string().min(1),
-  type: z.enum(["Ranked", "Multijoueur", "Camouflage"]),
-  attachments: z.array(z.string().min(1)).length(5),
-  equipment: z.string(),
-  perks: z.string(),
-  notes: z.string(),
-});
+export const matchSchema = z
+  .object({
+    id: z.string().min(1),
+    game: z.string().min(1),
+    date: z.string().datetime({ offset: true }),
+    map: z.string().min(1),
+    mode: z.string().min(1),
+    result: z.enum(["Victoire", "Défaite", "Égalité"]),
+    kills: count,
+    deaths: count,
+    assists: count,
+    weaponId: z.string(),
+    notes: z.string(),
+  })
+  .passthrough();
+export const profileSchema = z
+  .object({
+    id: z.string(),
+    nickname: z.string().min(1),
+    kills: count.nullable(),
+    deaths: count.nullable(),
+    wins: count.nullable(),
+    losses: count.nullable(),
+    hours: z.number().nonnegative().nullable(),
+    accuracy: z.number().min(0).max(100).nullable(),
+  })
+  .passthrough();
+export const loadoutSchema = z
+  .object({
+    id: z.string().min(1),
+    game: z.string().min(1),
+    name: z.string().min(1),
+    weaponId: z.string().min(1),
+    type: z.enum(["Ranked", "Multijoueur", "Camouflage"]),
+    attachments: z.array(z.string().min(1)).length(5),
+    equipment: z.string(),
+    perks: z.string(),
+    notes: z.string(),
+  })
+  .passthrough();
 export const schemas = {
   profiles: profileSchema,
   weapons: weaponSchema,

@@ -103,12 +103,14 @@ const labels: Record<string, string> = {
   perks: "Atouts",
 };
 export function Admin({
+  camoManaged = false,
   data,
   save,
   busy,
   notify,
   fail,
 }: {
+  camoManaged?: boolean;
   data: Dataset;
   save: (d: Dataset) => Promise<boolean>;
   busy: boolean;
@@ -129,6 +131,15 @@ export function Admin({
   };
   return (
     <>
+      {camoManaged && (
+        <div className="camo-info">
+          La progression des camouflages est désormais gérée dans le{" "}
+          <a href="#camos">tracker V2</a>. Les défis V1 restent consultables en
+          archive ; les anciennes sauvegardes JSON/CSV ne contiennent pas la
+          progression V2. Utilisez l’export V2 depuis le tracker pour une
+          sauvegarde complète.
+        </div>
+      )}
       <div className="toolbar wrap">
         <button
           className="button secondary"
@@ -227,7 +238,7 @@ export function Admin({
       <section className="panel">
         <div className="panel-title">
           <h2>{names[table]}</h2>
-          {table !== "profiles" && (
+          {table !== "profiles" && !(camoManaged && table === "challenges") && (
             <button
               className="button"
               onClick={() => {
@@ -244,15 +255,16 @@ export function Admin({
           <div className="admin-row" key={row.id}>
             <span>
               {"name" in row
-                ? row.name
+                ? String(row.name)
                 : "nickname" in row
-                  ? row.nickname
+                  ? String(row.nickname)
                   : "map" in row
                     ? `${row.map} · ${row.date}`
                     : "Enregistrement"}
               <small>{row.id}</small>
             </span>
             <button
+              disabled={camoManaged && table === "challenges"}
               onClick={() => {
                 setEditing({ ...row });
                 setOriginal(row.id);
@@ -261,7 +273,14 @@ export function Admin({
               Modifier
             </button>
             {table !== "profiles" && (
-              <button disabled={busy} onClick={() => setDeleting(row.id)}>
+              <button
+                disabled={
+                  busy ||
+                  (camoManaged &&
+                    (table === "weapons" || table === "challenges"))
+                }
+                onClick={() => setDeleting(row.id)}
+              >
                 Supprimer
               </button>
             )}
@@ -271,7 +290,10 @@ export function Admin({
           <div role="alert" className="alert">
             Supprimer cet enregistrement ?{" "}
             <button
-              disabled={busy}
+              disabled={
+                busy ||
+                (camoManaged && (table === "weapons" || table === "challenges"))
+              }
               onClick={async () => {
                 const next = {
                   ...data,
@@ -357,6 +379,9 @@ export function Admin({
                   {typeof value === "boolean" ? (
                     <input
                       type="checkbox"
+                      disabled={
+                        camoManaged && (key === "gold" || key === "platinum")
+                      }
                       checked={value}
                       onChange={(e) =>
                         setEditing({ ...editing, [key]: e.target.checked })
